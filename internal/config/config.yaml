@@ -1,0 +1,7 @@
+db_params:
+  db_addr: "127.0.0.1:6379"
+  db_pass: ""
+  db_num: 0
+  db_protocol: 2
+server_params:
+  listen_port: ":3000"
