@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	metric "cimrique-redis/internal/metrics"
 	"cimrique-redis/internal/models"
 	"cimrique-redis/internal/service"
 	"encoding/json"
@@ -11,6 +12,9 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type MainTest struct {
@@ -40,9 +44,18 @@ func TestMain(m *testing.M) {
 func (m *MainTest) setupApp() {
 	m.app = fiber.New()
 	m.client = new(mockClient) //create mock client here
-	m.service = service.NewServicesFuncs(m.client)
+
+	//metrics
+	reg := prometheus.NewRegistry()
+	metric := metric.NewMetric(reg)
+	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+
+	m.service = service.NewServicesFuncs(m.client, metric)
 	m.handler = NewHandler(&m.service)
 	m.app.Post("/enqueue", m.handler.HandleEnqueue)
+
+	// expose /metrics on the same Fiber app/port
+	m.app.Get("/metrics", adaptor.HTTPHandler(promHandler))
 }
 
 func (m *MainTest) sendRequest(app *fiber.App, t *testing.T, body []byte, apiKey string) (int, string) {

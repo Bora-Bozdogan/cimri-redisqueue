@@ -12,6 +12,8 @@ type servicesInterface interface {
 	EnqueueHigh(req models.Request) error
 	EnqueueMed(req models.Request) error
 	EnqueueLow(req models.Request) error
+	IncrementRequestCount()
+	IncrementValidRequestCount()
 }
 
 type Handler struct {
@@ -23,10 +25,11 @@ func NewHandler(service servicesInterface) Handler {
 }
 
 func (h Handler) HandleEnqueue(c *fiber.Ctx) error {
+	//metric
+	h.service.IncrementRequestCount()
+	
 	//unpack model and score
 	req, score := h.service.UnpackRequest(c.Body())
-
-	print(score)
 
 	//check for invalid score (100> or 1000<)
 	if score < 100 || score > 1000 {
@@ -47,9 +50,13 @@ func (h Handler) HandleEnqueue(c *fiber.Ctx) error {
 		err = h.service.EnqueueLow(req)
 		que = "low"
 	}
+	
 	if err != nil {
 		return c.Status(400).SendString("Couldn't enqueue request")
 	}
+
+	//metric
+	h.service.IncrementValidRequestCount()
 
 	//alert the workers by sending a message
 	return c.Status(200).SendString(fmt.Sprintf("Enqueued request score %d on queue %s", score, que))

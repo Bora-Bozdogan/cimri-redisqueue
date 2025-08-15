@@ -16,6 +16,7 @@ type Config struct {
 	ServerParams struct {
 		ListenPort string `mapstructure:"listen_port"`
 	} `mapstructure:"server_params"`
+
 }
 
 func LoadConfig() *Config {

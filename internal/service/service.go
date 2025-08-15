@@ -9,12 +9,18 @@ type clientServiceInterface interface {
 	EnqueueLow(req models.Request) error
 }
 
-type ServicesFuncs struct {
-	client clientServiceInterface
+type metricsInterface interface {
+	IncrementRequestCount() 
+	IncrementValidRequestCount()
 }
 
-func NewServicesFuncs(client clientServiceInterface) ServicesFuncs {
-	return ServicesFuncs{client: client}
+type ServicesFuncs struct {
+	client clientServiceInterface
+	metric metricsInterface
+}
+
+func NewServicesFuncs(client clientServiceInterface, metrics metricsInterface) ServicesFuncs {
+	return ServicesFuncs{client: client, metric: metrics}
 }
 
 func (s ServicesFuncs) UnpackRequest(body []byte) (models.Request, int) {
@@ -31,4 +37,12 @@ func (s ServicesFuncs) EnqueueMed(req models.Request) error {
 
 func (s ServicesFuncs) EnqueueLow(req models.Request) error {
 	return s.client.EnqueueLow(req)
+}
+
+func (s ServicesFuncs) IncrementRequestCount() {
+	s.metric.IncrementRequestCount()
+}
+
+func (s ServicesFuncs) IncrementValidRequestCount() {
+	s.metric.IncrementValidRequestCount()
 }
